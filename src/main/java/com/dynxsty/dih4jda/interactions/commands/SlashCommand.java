@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * @see SlashCommand#execute(SlashCommandInteractionEvent)
  * @since v1.5
  */
-public abstract class SlashCommand extends ExecutableCommand {
+public abstract class SlashCommand extends BaseCommandRequirements {
 
 	private SlashCommandData commandData = null;
 	private Set<Subcommand> subcommands = Set.of();
@@ -45,7 +45,8 @@ public abstract class SlashCommand extends ExecutableCommand {
 	 *
 	 * @since v1.5
 	 */
-	public void execute(SlashCommandInteractionEvent event) {}
+	public void execute(SlashCommandInteractionEvent event) {
+	}
 
 	public final SlashCommandData getSlashCommandData() {
 		return commandData;

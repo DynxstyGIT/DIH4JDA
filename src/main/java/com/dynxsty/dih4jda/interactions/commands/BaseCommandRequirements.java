@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * @see SlashCommand
  * @since v1.5
  */
-public abstract class ExecutableCommand extends CommandRequirements {
+public abstract class BaseCommandRequirements extends CommandRequirements {
 	private Set<Long> whitelistedGuilds = Set.of();
 	private Set<Long> blacklistedGuilds = Set.of();
 	private RegistrationType type = DIH4JDA.defaultCommandType;

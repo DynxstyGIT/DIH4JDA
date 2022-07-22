@@ -3,26 +3,27 @@ package com.dynxsty.dih4jda.interactions.commands;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
 
+import javax.annotation.Nonnull;
+
 /**
- * Interface that must be implemented for all classes that have {@link ComponentHandler#enableAutoCompleteHandling()} set.
+ * Interface for commands that handle the {@link CommandAutoCompleteInteractionEvent}.
  *
  * <pre>{@code
  * public class PingCommand extends SlashCommand implements AutoCompletable {
  *
- *     public PingCommand(Guild guild) {
- *         setCommandData(Commands.slash("ping", "Ping someone").addOption(OptionType.STRING, "user-id", "The user's id", true, true));
- *         enableAutoCompleteHandling();
+ *     public PingCommand() {
+ *         setSlashCommandData(Commands.slash("ping", "Ping someone").addOption(OptionType.STRING, "user-id", "The user's id", true, true));
  *     }
  *
  *     @Override
- *     public void execute(SlashCommandInteractionEvent event) {
+ *     public void execute(@Nonnull SlashCommandInteractionEvent event) {
  *         OptionMapping mapping = event.getOption("user-id");
  *         String userId = mapping.getAsString();
  *         event.replyFormat("Ping! <@%s>", userId).queue();
  *     }
  *
  *     @Override
- *     public void handleAutoComplete(CommandAutoCompleteInteractionEvent event, AutoCompleteQuery target) {
+ *     public void handleAutoComplete(@Nonnull CommandAutoCompleteInteractionEvent event, @Nonnull AutoCompleteQuery target) {
  *         if (target.getName().equals("user-id")) {
  *             List<Member> members = event.getGuild().getMembers().stream().limit(25).collect(Collectors.toList());
  *             List<Command.Choice> choices = new ArrayList<>(25);
@@ -40,5 +41,5 @@ import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
  * @since v1.4
  */
 public interface AutoCompletable {
-	void handleAutoComplete(CommandAutoCompleteInteractionEvent event, AutoCompleteQuery target);
+	void handleAutoComplete(@Nonnull CommandAutoCompleteInteractionEvent event, @Nonnull AutoCompleteQuery target);
 }

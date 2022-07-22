@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionE
 import net.dv8tion.jda.api.events.interaction.command.UserContextInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Model class which represents a single Context Command.
@@ -13,7 +14,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
  * @see ContextCommand.Message#execute(MessageContextInteractionEvent)
  * @since v1.5
  */
-public abstract class ContextCommand extends ExecutableCommand {
+public abstract class ContextCommand extends BaseCommandRequirements {
 	private CommandData commandData = null;
 
 	protected ContextCommand() {}
@@ -29,7 +30,7 @@ public abstract class ContextCommand extends ExecutableCommand {
 	 * @see net.dv8tion.jda.api.interactions.commands.build.Commands#user(String)
 	 * @see net.dv8tion.jda.api.interactions.commands.build.Commands#message(String)
 	 */
-	public final void setCommandData(CommandData commandData) {
+	public final void setCommandData(@NotNull CommandData commandData) {
 		if (commandData.getType() == Command.Type.MESSAGE || commandData.getType() == Command.Type.USER) {
 			this.commandData = commandData;
 		} else {
@@ -53,6 +54,7 @@ public abstract class ContextCommand extends ExecutableCommand {
 		 * 		event.reply("Pong!").queue();
 		 *    }
 		 * }}
+		 * </pre>
 		 */
 		public abstract void execute(UserContextInteractionEvent event);
 	}
@@ -73,6 +75,7 @@ public abstract class ContextCommand extends ExecutableCommand {
 		 * 		event.reply("Pong!").queue();
 		 *    }
 		 * }}
+		 * </pre>
 		 */
 		public abstract void execute(MessageContextInteractionEvent event);
 	}

@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -17,34 +18,48 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Utility class that contains some useful methods regarding the SmartQueue functionality.
+ * <h1>Smart Queue</h1>
+ * This Class handles all the SmartQueue functionality which can be disabled using
+ * {@link DIH4JDABuilder#setGlobalSmartQueue(boolean)} & {@link DIH4JDABuilder#setGuildSmartQueue(boolean)}.
+ * <br><br>
+ * <p>
+ *     This basically retrieves all existing commands and compares them with the local ones, thus, only queuing
+ *     "new" (commands, which yet do not exist) or edited commands , which reduces the amount of total command updates.
  *
+ * </p>
+ * <br>
+ * <p>
+ *     In addition to that, this will also delete ALL unknown commands, which were not found locally. This can be disabled
+ *     using {@link DIH4JDABuilder#disableUnknownCommandDeletion()}.</p>
  * @since v1.5
  */
 public class SmartQueue {
-	private SmartQueue() {
+	private final Set<UnqueuedSlashCommandData> slashData;
+	private final Set<UnqueuedCommandData> commandData;
+	private final boolean deleteUnknown;
+
+	protected SmartQueue(Set<UnqueuedSlashCommandData> slashData, Set<UnqueuedCommandData> commandData, boolean deleteUnknown) {
+		this.slashData = slashData;
+		this.commandData = commandData;
+		this.deleteUnknown = deleteUnknown;
 	}
 
 	/**
 	 * Compares CommandData with already existing Commands, removed duplicates and, if enabled, deleted unknown commands.
 	 *
-	 * @param jda         The {@link JDA} instance which is used to retrieve the already existing commands.
-	 * @param slashData   The set of {@link SlashCommandData}.
-	 * @param commandData The set of {@link CommandData}.
-	 * @return A {@link Pair} with the remaining {@link SlashCommandData} & {@link CommandData}.
+	 * @param jda The {@link JDA} instance which is used to retrieve the already existing commands.
+	 * @return A {@link Pair} with the remaining {@link SlashCommandData} and {@link CommandData}.
 	 * @since v1.5
 	 */
-	protected static Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> checkGlobal(JDA jda, Set<UnqueuedSlashCommandData> slashData, Set<UnqueuedCommandData> commandData, boolean deleteUnknown) {
+	protected @NotNull Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> checkGlobal(@NotNull JDA jda) {
 		List<Command> existing;
 		try {
 			existing = jda.retrieveCommands().complete();
 		} catch (ErrorResponseException e) {
-			DIH4JDALogger.error("Could not retrieve Global Commands! Please make sure that the bot was invited with " +
-					"the application.commands scope!");
 			return new Pair<>(Set.of(), Set.of());
 		}
 		if (!existing.isEmpty()) {
-			return removeDuplicates(jda, existing, slashData, commandData, null, deleteUnknown);
+			return removeDuplicates(jda, existing, null);
 		}
 		return new Pair<>(slashData, commandData);
 	}
@@ -52,13 +67,11 @@ public class SmartQueue {
 	/**
 	 * Compares CommandData with already existing Commands, removed duplicates and, if enabled, deletes unknown commands.
 	 *
-	 * @param guild       The {@link Guild} which is used to retrieve the already existing commands.
-	 * @param slashData   The set of {@link SlashCommandData}.
-	 * @param commandData The set of {@link CommandData}.
-	 * @return A {@link Pair} with the remaining {@link SlashCommandData} & {@link CommandData}.
+	 * @param guild The {@link Guild} which is used to retrieve the already existing commands.
+	 * @return A {@link Pair} with the remaining {@link SlashCommandData} and {@link CommandData}.
 	 * @since v1.5
 	 */
-	protected static Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> checkGuild(Guild guild, Set<UnqueuedSlashCommandData> slashData, Set<UnqueuedCommandData> commandData, boolean deleteUnknown) {
+	protected @NotNull Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> checkGuild(@NotNull Guild guild) {
 		List<Command> existing;
 		try {
 			existing = guild.retrieveCommands().complete();
@@ -68,24 +81,21 @@ public class SmartQueue {
 			return new Pair<>(Set.of(), Set.of());
 		}
 		if (!existing.isEmpty()) {
-			return removeDuplicates(guild.getJDA(), existing, slashData, commandData, guild, deleteUnknown);
+			return removeDuplicates(guild.getJDA(), existing, guild);
 		}
 		return new Pair<>(slashData, commandData);
 	}
 
 	/**
-	 * Removes all duplicate CommandData and, if enabled, deletes unknown commands.
+	 * Removes all duplicate {@link CommandData} and, if enabled, deletes unknown commands.
 	 *
-	 * @param jda           The {@link JDA} instance.
-	 * @param existing      A List of all existing {@link Command}s.
-	 * @param slashData     The set of {@link SlashCommandData}.
-	 * @param commandData   The set of {@link CommandData}.
-	 * @param guild         An optional guild parameter which is used with {@link SmartQueue#checkGuild(Guild, Set, Set, boolean)}.
-	 * @param deleteUnknown Whether unknown commands should be removed.
+	 * @param jda      The {@link JDA} instance.
+	 * @param existing A List of all existing {@link Command}s.
+	 * @param guild    An optional guild parameter which is used with {@link SmartQueue#checkGuild(Guild)}.
 	 * @return A {@link Pair} with the remaining {@link SlashCommandData} & {@link CommandData}.
 	 * @since v1.5
 	 */
-	private static Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> removeDuplicates(JDA jda, final List<Command> existing, Set<UnqueuedSlashCommandData> slashData, Set<UnqueuedCommandData> commandData, @Nullable Guild guild, boolean deleteUnknown) {
+	private @NotNull Pair<Set<UnqueuedSlashCommandData>, Set<UnqueuedCommandData>> removeDuplicates(JDA jda, final List<Command> existing, @Nullable Guild guild) {
 		List<Command> commands = new ArrayList<>(existing);
 		boolean global = guild == null;
 		String prefix = String.format("[%s] ", global ? "Global" : guild.getName());
@@ -96,7 +106,7 @@ public class SmartQueue {
 					slashData.stream().anyMatch(data -> CommandUtils.isEqual(cmd, data.getData(), global))) {
 				// check for command in blacklisted guilds
 				// this may be refactored soonTM, as its kinda clunky
-				if (guild != null) {
+				if (!global) {
 					for (UnqueuedSlashCommandData d : slashData) {
 						if (CommandUtils.isEqual(cmd, d.getData(), false) && !d.getGuilds().contains(guild)) {
 							DIH4JDALogger.info("Deleting /" + cmd.getName() + " in Guild: " + guild.getName());
@@ -125,7 +135,7 @@ public class SmartQueue {
 				if (existing.contains(command)) {
 					if (deleteUnknown) {
 						DIH4JDALogger.info(String.format(prefix + "Deleting unknown %s command: %s", command.getType(), command.getName()), DIH4JDALogger.Type.SMART_QUEUE);
-						if (guild == null) {
+						if (global) {
 							jda.deleteCommandById(command.getId()).queue();
 						} else {
 							guild.deleteCommandById(command.getId()).queue();

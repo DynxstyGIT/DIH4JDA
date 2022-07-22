@@ -1,20 +1,21 @@
 package com.dynxsty.dih4jda;
 
 import com.dynxsty.dih4jda.config.DIH4JDAConfig;
-import com.dynxsty.dih4jda.events.DIH4JDAListenerAdapter;
+import com.dynxsty.dih4jda.events.DIH4JDAEventListener;
 import com.dynxsty.dih4jda.interactions.commands.RegistrationType;
+import com.dynxsty.dih4jda.interactions.components.ButtonHandler;
+import com.dynxsty.dih4jda.interactions.components.ModalHandler;
+import com.dynxsty.dih4jda.interactions.components.SelectMenuHandler;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
- * The entry-point of this Handler.
- *
- * <h2>Creating a new DIH4JDA instance</h2>
+ * <h1>DIH4JDA</h1>
+ * <h2>Creating a new {@link DIH4JDA} instance:</h2>
  * <pre>{@code
  * DIH4JDA dih4JDA = DIH4JDABuilder
  *         .setJDA(jda) // Your JDA instance
@@ -26,9 +27,25 @@ import java.util.Set;
  */
 public class DIH4JDA extends ListenerAdapter {
 
+	/**
+	 * The default {@link RegistrationType} which is used for queuing new commands.
+	 * This can be overridden using {@link com.dynxsty.dih4jda.interactions.commands.BaseCommandRequirements#setRegistrationType(RegistrationType)}
+	 */
 	public static RegistrationType defaultCommandType;
+
+	// Component Handler
+	private static Map<List<String>, ButtonHandler> buttonHandlers;
+	private static Map<List<String>, SelectMenuHandler> selectMenuHandlers;
+	private static Map<List<String>, ModalHandler> modalHandlers;
+
+	static {
+		buttonHandlers = new HashMap<>();
+		selectMenuHandlers = new HashMap<>();
+		modalHandlers = new HashMap<>();
+	}
+
 	private final DIH4JDAConfig config;
-	private final Set<DIH4JDAListenerAdapter> listeners;
+	private final Set<DIH4JDAEventListener> listeners;
 	private InteractionHandler handler;
 
 	/**
@@ -40,14 +57,9 @@ public class DIH4JDA extends ListenerAdapter {
 		if (defaultCommandType == null) defaultCommandType = RegistrationType.GUILD;
 		this.config = config;
 		listeners = new HashSet<>();
-		try {
-			DIH4JDALogger.blockedLogTypes = config.getBlockedLogTypes();
-			this.handler = new InteractionHandler(this);
-			config.getJDA().addEventListener(this, handler);
-		} catch (ReflectiveOperationException e) {
-			e.printStackTrace();
-			DIH4JDALogger.warn("Could not initialize Interaction Handler: " + e.getMessage());
-		}
+		DIH4JDALogger.blockedLogTypes = config.getBlockedLogTypes();
+		this.handler = new InteractionHandler(this);
+		config.getJDA().addEventListener(this, handler);
 	}
 
 	/**
@@ -86,7 +98,7 @@ public class DIH4JDA extends ListenerAdapter {
 	}
 
 	/**
-	 * Allows to add Listener classes (that extend {@link DIH4JDAListenerAdapter}).
+	 * Allows to add Listener classes (that extend {@link DIH4JDAEventListener}).
 	 *
 	 * @since v1.5
 	 */
@@ -94,7 +106,7 @@ public class DIH4JDA extends ListenerAdapter {
 		for (Object o : classes) {
 			try {
 				// check if class extends the ListenerAdapter
-				DIH4JDAListenerAdapter adapter = (DIH4JDAListenerAdapter) o;
+				DIH4JDAEventListener adapter = (DIH4JDAEventListener) o;
 				listeners.add(adapter);
 			} catch (ClassCastException e) {
 				throw new IllegalArgumentException("Listener classes must extend DIH4JDAListenerAdapter!");
@@ -106,7 +118,100 @@ public class DIH4JDA extends ListenerAdapter {
 	 * @return A set of all Listener classes.
 	 * @see DIH4JDA#addListener(Object...)
 	 */
-	protected Set<DIH4JDAListenerAdapter> getListeners() {
+	protected Set<DIH4JDAEventListener> getListeners() {
 		return listeners;
+	}
+
+	/**
+	 * Convenience method which replaces {@link DIH4JDA#getConfig()#getJDA()}
+	 *
+	 * @return The {@link JDA} instance.
+	 */
+	public JDA getJDA() {
+		return config.getJDA();
+	}
+
+	/**
+	 * Binds all {@link ButtonHandler}s to their id.
+	 * <br>
+	 * <pre>{@code
+	 * dih4jda.addButtonHandlers(Map.of(
+	 * 	"apple", new AppleButtonHandler,
+	 * 	"banana", new BananaButtonHandler
+	 * ));
+	 * }</pre>
+	 * <br>
+	 * This is best used in combination with {@link com.dynxsty.dih4jda.interactions.ComponentIdBuilder#build(String, Object...)}.
+	 *
+	 * @param handlers All {@link ButtonHandler}, as a immutable {@link Map}.
+	 */
+	public void addButtonHandlers(Map<List<String>, ButtonHandler> handlers) {
+		buttonHandlers.putAll(handlers);
+	}
+
+	/**
+	 * Gets all {@link ButtonHandler}s.
+	 *
+	 * @return An immutable {@link Map} which stores the id as the <strong>Key</strong> and
+	 * the {@link ButtonHandler} as the <strong>Value</strong>.
+	 */
+	public Map<List<String>, ButtonHandler> getButtonHandlers() {
+		return buttonHandlers;
+	}
+
+	/**
+	 * Binds all {@link SelectMenuHandler}s to their id.
+	 * <br>
+	 * <pre>{@code
+	 * dih4jda.addSelectMenuHandlers(Map.of(
+	 * 	"apple", new AppleSelectMenuHandler,
+	 * 	"banana", new BananaSelectMenuHandler
+	 * ));
+	 * }</pre>
+	 * <br>
+	 * This is best used in combination with {@link com.dynxsty.dih4jda.interactions.ComponentIdBuilder#build(String, Object...)}.
+	 *
+	 * @param handlers All {@link SelectMenuHandler}, as a immutable {@link Map}.
+	 */
+	public void addSelectMenuHandlers(Map<List<String>, SelectMenuHandler> handlers) {
+		selectMenuHandlers.putAll(handlers);
+	}
+
+	/**
+	 * Gets all {@link SelectMenuHandler}s.
+	 *
+	 * @return An immutable {@link Map} which stores the id as the <strong>Key</strong> and
+	 * the {@link SelectMenuHandler} as the <strong>Value</strong>.
+	 */
+	public Map<List<String>, SelectMenuHandler> getSelectMenuHandlers() {
+		return selectMenuHandlers;
+	}
+
+	/**
+	 * Binds all {@link ModalHandler}s to their id.
+	 * <br>
+	 * <pre>{@code
+	 * dih4jda.addModalHandlers(Map.of(
+	 * 	"apple", new AppleModalHandler,
+	 * 	"banana", new BananaModalHandler
+	 * ));
+	 * }</pre>
+	 * <br>
+	 * This is best used in combination with {@link com.dynxsty.dih4jda.interactions.ComponentIdBuilder#build(String, Object...)}.
+	 *
+	 * @param handlers All {@link ModalHandler}, as a immutable {@link Map}.
+	 */
+	public void addModalHandlers(Map<List<String>, ModalHandler> handlers) {
+		modalHandlers.putAll(handlers);
+	}
+
+	/**
+	 * Gets all {@link ModalHandler}s.
+	 *
+	 * @return An immutable {@link Map} which stores the id as the <strong>Key</strong> and
+	 * the {@link ModalHandler} as the <strong>Value</strong>.
+	 */
+	public Map<List<String>, ModalHandler> getModalHandlers() {
+		return modalHandlers;
 	}
 }

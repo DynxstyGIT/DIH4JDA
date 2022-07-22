@@ -20,6 +20,7 @@ public class DIH4JDAConfig {
 	private boolean globalSmartQueue = true;
 	private boolean guildSmartQueue = true;
 	private boolean deleteUnknownCommands = true;
+	private boolean throwUnregisteredException = true;
 	private Executor executor = ForkJoinPool.commonPool();
 
 	public JDA getJDA() {
@@ -58,12 +59,12 @@ public class DIH4JDAConfig {
 		return globalSmartQueue;
 	}
 
-	public boolean isGuildSmartQueue() {
-		return guildSmartQueue;
-	}
-
 	public void setGlobalSmartQueue(boolean globalSmartQueue) {
 		this.globalSmartQueue = globalSmartQueue;
+	}
+
+	public boolean isGuildSmartQueue() {
+		return guildSmartQueue;
 	}
 
 	public void setGuildSmartQueue(boolean guildSmartQueue) {
@@ -84,5 +85,13 @@ public class DIH4JDAConfig {
 
 	public void setExecutor(Executor executor) {
 		this.executor = executor;
+	}
+
+	public boolean isThrowUnregisteredException() {
+		return throwUnregisteredException;
+	}
+
+	public void setThrowUnregisteredException(boolean throwUnregisteredException) {
+		this.throwUnregisteredException = throwUnregisteredException;
 	}
 }
